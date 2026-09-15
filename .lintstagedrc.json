@@ -1,3 +1,4 @@
 {
-  "*.{js,jsx,ts,tsx,mjs,cjs,json,css,md,yml,yaml}": ["prettier --write", "eslint --fix"]
+  "apps/api/**/*.{js,jsx,ts,tsx,mjs,cjs}": ["prettier --write", "cd apps/api && eslint --fix"],
+  "*.{json,css,md,yml,yaml}": ["prettier --write"]
 }
