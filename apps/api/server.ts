@@ -12,9 +12,7 @@ async function startServer() {
     console.log("✅ PostgreSQL connected");
 
     app.listen(PORT, () => {
-      console.log(
-        `🚀 Hammr API running on http://localhost:${PORT}`
-      );
+      console.log(`🚀 Hammr API running on http://localhost:${PORT}`);
     });
   } catch (error) {
     console.error("❌ Database connection failed");
