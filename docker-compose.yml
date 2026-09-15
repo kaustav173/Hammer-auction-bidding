@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: hammr-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hammr
+      POSTGRES_PASSWORD: hammr
+      POSTGRES_DB: hammr
+    ports:
+      - "5432:5432"
+    volumes:
+      - hammr_postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: hammr-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - hammr_redis_data:/data
+
+volumes:
+  hammr_postgres_data:
+  hammr_redis_data:
