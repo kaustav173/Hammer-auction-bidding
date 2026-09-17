@@ -30,7 +30,8 @@ export async function getAuctionHandler(
   next: NextFunction,
 ) {
   try {
-    const auction = await getAuctionById(req.params.id);
+    const auctionId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const auction = await getAuctionById(auctionId);
     if (!auction) throw new AppError("Auction not found", 404);
     return res.status(200).json({ success: true, auction });
   } catch (error) {

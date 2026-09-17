@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 
 import { db } from "../../db/index.js";
-import { auctions } from "../../db/schema/auction.ts";
+import { auctions } from "../../db/schema/auction.js";
 import type { AuthenticatedRequest } from "../../middleware/auth.middleware.js";
 
 type AuctionStatus = "SCHEDULED" | "LIVE" | "CLOSED" | "SETTLEMENT_PENDING" | "SOLD" | "UNSOLD";
@@ -40,6 +40,8 @@ export async function listAuctions(req: Request, res: Response) {
     };
 
     const conditions = [];
+    const minPriceValue = typeof minPrice === "string" ? minPrice : undefined;
+    const maxPriceValue = typeof maxPrice === "string" ? maxPrice : undefined;
 
     if (status) {
       conditions.push(eq(auctions.status, status as AuctionStatus));
@@ -49,12 +51,12 @@ export async function listAuctions(req: Request, res: Response) {
       conditions.push(eq(auctions.category, category));
     }
 
-    if (minPrice !== undefined) {
-      conditions.push(gte(auctions.currentPrice, minPrice));
+    if (minPriceValue !== undefined) {
+      conditions.push(gte(auctions.currentPrice, minPriceValue));
     }
 
-    if (maxPrice !== undefined) {
-      conditions.push(lte(auctions.currentPrice, maxPrice));
+    if (maxPriceValue !== undefined) {
+      conditions.push(lte(auctions.currentPrice, maxPriceValue));
     }
 
     const rows = await db
@@ -78,7 +80,7 @@ export async function listAuctions(req: Request, res: Response) {
 
 export async function getAuction(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
     const [auction] = await db.select().from(auctions).where(eq(auctions.id, id)).limit(1);
 

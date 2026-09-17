@@ -1,16 +1,13 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import authRoutes from "./modules/auth/auth.routes.js";
-import auctionRoutes from "./modules/auction/auction.routes.js";
-import bidRoutes from "./modules/bid/bid.routes.js";
-import paymentRoutes from "./modules/payment/payment.routes.js";
 import cookieParser from "cookie-parser";
 
 import authRoutes from "./modules/auth/auth.routes.js";
 import userRoutes from "./modules/users/user.routes.js";
 import auctionRoutes from "./modules/auctions/auction.routes.js";
 import bidRoutes from "./modules/bids/bid.routes.js";
+import paymentRoutes from "./modules/payment/payment.routes.js";
 import { errorMiddleware } from "./middleware/error.middleware.js";
 
 const app = express();

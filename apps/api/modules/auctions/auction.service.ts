@@ -17,10 +17,10 @@ export async function createAuction(sellerId: string, data: CreateAuctionInput) 
         title: data.title,
         description: data.description,
         category: data.category,
-        startingPrice: data.startingPrice,
-        reservePrice: data.reservePrice,
-        currentPrice: data.startingPrice,
-        minimumIncrement: data.minimumIncrement,
+        startingPrice: String(data.startingPrice),
+        reservePrice: data.reservePrice !== null ? String(data.reservePrice) : null,
+        currentPrice: String(data.startingPrice),
+        minimumIncrement: String(data.minimumIncrement),
         startAt: data.startAt,
         endAt: data.endAt,
         originalEndAt: data.endAt,
@@ -60,8 +60,10 @@ export async function listAuctions(filters: {
   if (filters.status)
     conditions.push(eq(auctions.status, filters.status as (typeof auctions.status)["_"]["data"]));
   if (filters.category) conditions.push(eq(auctions.category, filters.category));
-  if (filters.minPrice !== undefined) conditions.push(gte(auctions.currentPrice, filters.minPrice));
-  if (filters.maxPrice !== undefined) conditions.push(lte(auctions.currentPrice, filters.maxPrice));
+  if (filters.minPrice !== undefined)
+    conditions.push(gte(auctions.currentPrice, String(filters.minPrice)));
+  if (filters.maxPrice !== undefined)
+    conditions.push(lte(auctions.currentPrice, String(filters.maxPrice)));
 
   const query = db.select().from(auctions);
   return conditions.length > 0 ? query.where(and(...conditions)) : query;

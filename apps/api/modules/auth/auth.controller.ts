@@ -406,7 +406,7 @@ export async function verifyTwoFactorLogin(req: Request, res: Response) {
         userId: user.id,
         refreshTokenHash: "pending",
         revoked: false,
-        ipAddress: req.ip,
+        ipAddress: req.ip ?? "unknown",
         userAgent: req.headers["user-agent"] ?? "unknown",
       })
       .returning({ id: sessions.id });
@@ -435,7 +435,7 @@ export async function verifyTwoFactorLogin(req: Request, res: Response) {
   }
 }
 
-export async function getCurrentUser(req: Request, res: Response) {
+export async function getCurrentUser(req: AuthenticatedRequest, res: Response) {
   try {
     if (!req.user) {
       return res.status(401).json({
@@ -478,7 +478,7 @@ export async function getCurrentUser(req: Request, res: Response) {
   }
 }
 
-export async function refreshAccessToken(req: Request, res: Response) {
+export async function refreshAccessToken(req: AuthenticatedRequest & Request, res: Response) {
   try {
     const refreshToken = req.cookies?.refreshToken;
 
@@ -585,7 +585,7 @@ export async function refreshAccessToken(req: Request, res: Response) {
   }
 }
 
-export async function logoutUser(req: Request, res: Response) {
+export async function logoutUser(req: AuthenticatedRequest & Request, res: Response) {
   try {
     const refreshToken = req.cookies?.refreshToken;
 
@@ -665,7 +665,7 @@ export async function logoutUser(req: Request, res: Response) {
   }
 }
 
-export async function logoutAllSessions(req: Request, res: Response) {
+export async function logoutAllSessions(req: AuthenticatedRequest & Request, res: Response) {
   try {
     const refreshToken = req.cookies?.refreshToken;
 

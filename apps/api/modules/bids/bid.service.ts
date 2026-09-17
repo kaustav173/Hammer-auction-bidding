@@ -34,7 +34,7 @@ export async function placeBid(auctionId: string, bidderId: string, amount: numb
     }
 
     // Section 28
-    const minimumBid = auction.currentPrice + auction.minimumIncrement;
+    const minimumBid = Number(auction.currentPrice) + Number(auction.minimumIncrement);
 
     if (amount < minimumBid) {
       throw new AppError("Bid is below the minimum required amount", 409, {
@@ -43,7 +43,14 @@ export async function placeBid(auctionId: string, bidderId: string, amount: numb
       });
     }
 
-    const [bid] = await tx.insert(bids).values({ auctionId, bidderId, amount }).returning();
+    const [bid] = await tx
+      .insert(bids)
+      .values({ auctionId, bidderId, amount: String(amount) })
+      .returning();
+
+    if (!bid) {
+      throw new AppError("Unable to create bid", 500);
+    }
 
     if (!bid) {
       throw new AppError("Unable to create bid", 500);
@@ -63,7 +70,7 @@ export async function placeBid(auctionId: string, bidderId: string, amount: numb
     const [updatedAuction] = await tx
       .update(auctions)
       .set({
-        currentPrice: amount,
+        currentPrice: String(amount),
         bidCount: sql`${auctions.bidCount} + 1`,
         endAt: newEndAt,
         updatedAt: now,
@@ -75,6 +82,15 @@ export async function placeBid(auctionId: string, bidderId: string, amount: numb
       throw new AppError("Failed to update auction after bid", 500);
     }
 
-    return { bid, auction: updatedAuction };
+    return {
+      bid: {
+        ...bid,
+        amount: Number(bid.amount),
+      },
+      auction: {
+        ...updatedAuction,
+        currentPrice: Number(updatedAuction.currentPrice),
+      },
+    };
   });
 }

@@ -17,17 +17,14 @@ function getRazorpayClient() {
 }
 
 export async function createOrder(req: Request, res: Response) {
-  const {
-    amount,
-    currency = "INR",
-    receipt,
-  } = req.body as {
+  const parsedAmount = Number(req.body?.amount);
+  const { currency = "INR", receipt } = req.body as {
     amount?: number;
     currency?: string;
     receipt?: string;
   };
 
-  if (!Number.isInteger(amount) || amount < 100) {
+  if (!Number.isInteger(parsedAmount) || parsedAmount < 100) {
     return res.status(400).json({
       success: false,
       message: "Amount must be at least 100 paise",
@@ -35,8 +32,8 @@ export async function createOrder(req: Request, res: Response) {
   }
 
   try {
-    const order = await getRazorpayClient().orders.create({
-      amount,
+    const order: any = await getRazorpayClient().orders.create({
+      amount: parsedAmount,
       currency,
       receipt: receipt || `hammr_${Date.now()}`,
     });

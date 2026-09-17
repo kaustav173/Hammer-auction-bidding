@@ -14,10 +14,12 @@ export async function placeBid(req: AuthenticatedRequest, res: Response) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    const { auctionId } = req.params;
-    const { amount } = req.body as { amount: number };
+    const auctionId = Array.isArray(req.params.auctionId)
+      ? req.params.auctionId[0]
+      : req.params.auctionId;
+    const amount = Number(req.body?.amount);
 
-    if (!amount || typeof amount !== "number" || amount <= 0) {
+    if (!Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({
         success: false,
         message: "Invalid bid amount",
