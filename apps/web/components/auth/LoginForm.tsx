@@ -71,7 +71,7 @@ export default function LoginForm() {
             placeholder="you@example.com"
             required
             autoComplete="email"
-            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-black"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-black"
           />
         </div>
 
@@ -89,7 +89,7 @@ export default function LoginForm() {
               onChange={(event) => setTwoFactorCode(event.target.value.replace(/\D/g, ""))}
               required
               autoComplete="one-time-code"
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-black"
+              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-black"
             />
           </div>
         )}
@@ -107,7 +107,7 @@ export default function LoginForm() {
             placeholder="••••••••"
             required
             autoComplete="current-password"
-            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-black"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-black"
           />
         </div>
 
