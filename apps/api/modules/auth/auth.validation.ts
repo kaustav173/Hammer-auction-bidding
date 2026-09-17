@@ -4,8 +4,12 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function isValidRegistrationRole(role: unknown): role is "BUYER" | "SELLER" {
+  return role === "BUYER" || role === "SELLER";
+}
+
 export function validateRegister(req: Request, res: Response, next: NextFunction) {
-  const { email, password } = req.body;
+  const { email, password, role } = req.body;
 
   if (typeof email !== "string" || typeof password !== "string") {
     return res.status(400).json({
@@ -44,9 +48,17 @@ export function validateRegister(req: Request, res: Response, next: NextFunction
     });
   }
 
+  if (!isValidRegistrationRole(role)) {
+    return res.status(400).json({
+      success: false,
+      message: "Role must be BUYER or SELLER",
+    });
+  }
+
   req.body = {
     email: normalizedEmail,
     password,
+    role,
   };
 
   next();

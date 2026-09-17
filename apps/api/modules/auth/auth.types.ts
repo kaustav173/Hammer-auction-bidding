@@ -5,6 +5,7 @@ export type UserRole = "BUYER" | "SELLER" | "ADMIN";
 export interface RegisterBody {
   email: string;
   password: string;
+  role: "BUYER" | "SELLER";
 }
 
 export interface LoginBody {
