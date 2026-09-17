@@ -4,6 +4,10 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function isValidRegistrationRole(role: unknown): role is "BUYER" | "SELLER" {
+  return role === "BUYER" || role === "SELLER";
+}
+
 export function validateRegister(req: Request, res: Response, next: NextFunction) {
   const { email, password, role } = req.body;
 

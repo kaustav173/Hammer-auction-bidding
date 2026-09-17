@@ -6,7 +6,7 @@ import { and, eq } from "drizzle-orm";
 
 import { db } from "../../db/index.js";
 import { users } from "../../db/schema/user.js";
-import { sessions } from "../../db/schema/session.ts";
+import { sessions } from "../../db/schema/session.js";
 
 import type { AccessTokenPayload, RefreshTokenPayload, UserRole } from "./auth.types.js";
 import {
@@ -133,7 +133,7 @@ export async function registerUser(req: Request, res: Response) {
         userId: newUser.id,
         refreshTokenHash: "pending",
         revoked: false,
-        ipAddress: req.ip,
+        ipAddress: req.ip ?? "unknown",
         userAgent: req.headers["user-agent"] ?? "unknown",
       })
       .returning({
@@ -235,7 +235,7 @@ export async function loginUser(req: Request, res: Response) {
         userId: user.id,
         refreshTokenHash: "pending",
         revoked: false,
-        ipAddress: req.ip,
+        ipAddress: req.ip ?? "unknown",
         userAgent: req.headers["user-agent"] ?? "unknown",
       })
       .returning({
@@ -437,48 +437,10 @@ export async function verifyTwoFactorLogin(req: Request, res: Response) {
 
 export async function getCurrentUser(req: Request, res: Response) {
   try {
-    const authorization = req.headers.authorization;
-
-    if (!authorization || !authorization.startsWith("Bearer ")) {
+    if (!req.user) {
       return res.status(401).json({
         success: false,
         message: "Authentication required",
-      });
-    }
-
-    const token = authorization.substring(7);
-
-    let decoded: AccessTokenPayload;
-
-    try {
-      decoded = jwt.verify(token, getAccessSecret()) as AccessTokenPayload;
-    } catch {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid or expired access token",
-      });
-    }
-
-    if (decoded.type !== "access" || !decoded.userId || !decoded.sessionId) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid access token",
-      });
-    }
-
-    const [session] = await db
-      .select({
-        id: sessions.id,
-        revoked: sessions.revoked,
-      })
-      .from(sessions)
-      .where(and(eq(sessions.id, decoded.sessionId), eq(sessions.userId, decoded.userId)))
-      .limit(1);
-
-    if (!session || session.revoked) {
-      return res.status(401).json({
-        success: false,
-        message: "Session is no longer active",
       });
     }
 
@@ -491,7 +453,7 @@ export async function getCurrentUser(req: Request, res: Response) {
         createdAt: users.createdAt,
       })
       .from(users)
-      .where(eq(users.id, decoded.userId))
+      .where(eq(users.id, req.user.userId))
       .limit(1);
 
     if (!user) {
