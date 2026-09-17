@@ -5,7 +5,7 @@ function isValidEmail(email: string): boolean {
 }
 
 export function validateRegister(req: Request, res: Response, next: NextFunction) {
-  const { email, password } = req.body;
+  const { email, password, role } = req.body;
 
   if (typeof email !== "string" || typeof password !== "string") {
     return res.status(400).json({
@@ -44,9 +44,17 @@ export function validateRegister(req: Request, res: Response, next: NextFunction
     });
   }
 
+  if (role !== "BUYER" && role !== "SELLER") {
+    return res.status(400).json({
+      success: false,
+      message: "Role must be BUYER or SELLER",
+    });
+  }
+
   req.body = {
     email: normalizedEmail,
     password,
+    role,
   };
 
   next();

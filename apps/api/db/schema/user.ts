@@ -11,6 +11,10 @@ export const users = pgTable("users", {
 
   role: userRoleEnum("role").notNull().default("BUYER"),
 
+  twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
+
+  twoFactorSecret: text("two_factor_secret"),
+
   createdAt: timestamp("created_at", {
     withTimezone: true,
   })

@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: hammr
-      POSTGRES_PASSWORD: hammr
+      POSTGRES_PASSWORD: hammr123
       POSTGRES_DB: hammr
     ports:
       - "5432:5432"

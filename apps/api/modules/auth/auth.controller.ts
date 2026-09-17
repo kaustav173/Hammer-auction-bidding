@@ -9,6 +9,13 @@ import { users } from "../../db/schema/user.js";
 import { sessions } from "../../db/schema/session.ts";
 
 import type { AccessTokenPayload, RefreshTokenPayload, UserRole } from "./auth.types.js";
+import {
+  generateOtpAuthUrl,
+  generateQrCode,
+  generateTwoFactorSecret,
+  verifyTwoFactorCode,
+} from "./two-factor.service.js";
+import type { AuthenticatedRequest } from "../../middleware/auth.middleware.js";
 
 function getAccessSecret(): string {
   const secret = process.env.JWT_ACCESS_SECRET;
@@ -80,7 +87,7 @@ function getRefreshCookieOptions() {
 
 export async function registerUser(req: Request, res: Response) {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
 
     const [existingUser] = await db
       .select({
@@ -104,7 +111,7 @@ export async function registerUser(req: Request, res: Response) {
       .values({
         email,
         passwordHash,
-        role: "BUYER",
+        role,
       })
       .returning({
         id: users.id,
@@ -187,6 +194,7 @@ export async function loginUser(req: Request, res: Response) {
         email: users.email,
         passwordHash: users.passwordHash,
         role: users.role,
+        twoFactorEnabled: users.twoFactorEnabled,
       })
       .from(users)
       .where(eq(users.email, email))
@@ -205,6 +213,19 @@ export async function loginUser(req: Request, res: Response) {
       return res.status(401).json({
         success: false,
         message: "Invalid email or password",
+      });
+    }
+
+    if (user.twoFactorEnabled) {
+      const challengeToken = jwt.sign({ userId: user.id, type: "2fa" }, getAccessSecret(), {
+        expiresIn: "5m",
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Two-factor authentication required",
+        requiresTwoFactor: true,
+        challengeToken,
       });
     }
 
@@ -265,6 +286,155 @@ export async function loginUser(req: Request, res: Response) {
   }
 }
 
+export async function setupTwoFactor(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user?.userId) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
+    }
+
+    const [user] = await db
+      .select({ email: users.email, twoFactorEnabled: users.twoFactorEnabled })
+      .from(users)
+      .where(eq(users.id, req.user.userId))
+      .limit(1);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    if (user.twoFactorEnabled) {
+      return res
+        .status(409)
+        .json({ success: false, message: "Two-factor authentication is already enabled" });
+    }
+
+    const secret = generateTwoFactorSecret();
+    const otpAuthUrl = generateOtpAuthUrl(user.email, secret);
+    const qrCode = await generateQrCode(otpAuthUrl);
+
+    await db.update(users).set({ twoFactorSecret: secret }).where(eq(users.id, req.user.userId));
+
+    return res.status(200).json({ success: true, secret, qrCode });
+  } catch (error) {
+    console.error("2FA setup error:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Unable to set up two-factor authentication" });
+  }
+}
+
+export async function verifyTwoFactorSetup(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { token } = req.body;
+    if (!req.user?.userId || typeof token !== "string") {
+      return res.status(400).json({ success: false, message: "A verification code is required" });
+    }
+
+    const [user] = await db
+      .select({ twoFactorSecret: users.twoFactorSecret })
+      .from(users)
+      .where(eq(users.id, req.user.userId))
+      .limit(1);
+
+    if (!user?.twoFactorSecret || !(await verifyTwoFactorCode(token, user.twoFactorSecret))) {
+      return res.status(400).json({ success: false, message: "Invalid verification code" });
+    }
+
+    await db.update(users).set({ twoFactorEnabled: true }).where(eq(users.id, req.user.userId));
+    return res.status(200).json({ success: true, message: "Two-factor authentication enabled" });
+  } catch (error) {
+    console.error("2FA verification error:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Unable to verify two-factor authentication" });
+  }
+}
+
+export async function disableTwoFactor(req: AuthenticatedRequest, res: Response) {
+  if (!req.user?.userId) {
+    return res.status(401).json({ success: false, message: "Authentication required" });
+  }
+
+  await db
+    .update(users)
+    .set({ twoFactorEnabled: false, twoFactorSecret: null })
+    .where(eq(users.id, req.user.userId));
+
+  return res.status(200).json({ success: true, message: "Two-factor authentication disabled" });
+}
+
+export async function verifyTwoFactorLogin(req: Request, res: Response) {
+  try {
+    const { challengeToken, token } = req.body;
+    if (typeof challengeToken !== "string" || typeof token !== "string") {
+      return res
+        .status(400)
+        .json({ success: false, message: "A challenge and verification code are required" });
+    }
+
+    const decoded = jwt.verify(challengeToken, getAccessSecret()) as {
+      userId?: string;
+      type?: string;
+    };
+    if (decoded.type !== "2fa" || !decoded.userId) {
+      return res.status(401).json({ success: false, message: "Invalid two-factor challenge" });
+    }
+
+    const [user] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        role: users.role,
+        twoFactorSecret: users.twoFactorSecret,
+        twoFactorEnabled: users.twoFactorEnabled,
+      })
+      .from(users)
+      .where(eq(users.id, decoded.userId))
+      .limit(1);
+
+    if (
+      !user?.twoFactorEnabled ||
+      !user.twoFactorSecret ||
+      !(await verifyTwoFactorCode(token, user.twoFactorSecret))
+    ) {
+      return res.status(401).json({ success: false, message: "Invalid verification code" });
+    }
+
+    const [session] = await db
+      .insert(sessions)
+      .values({
+        userId: user.id,
+        refreshTokenHash: "pending",
+        revoked: false,
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"] ?? "unknown",
+      })
+      .returning({ id: sessions.id });
+
+    if (!session) {
+      return res.status(500).json({ success: false, message: "Unable to create session" });
+    }
+
+    const refreshToken = generateRefreshToken(user.id, session.id);
+    await db
+      .update(sessions)
+      .set({ refreshTokenHash: hashRefreshToken(refreshToken) })
+      .where(eq(sessions.id, session.id));
+    res.cookie("refreshToken", refreshToken, getRefreshCookieOptions());
+
+    return res.status(200).json({
+      success: true,
+      message: "Two-factor login successful",
+      user: { id: user.id, email: user.email, role: user.role },
+      accessToken: generateAccessToken(user.id, session.id, user.role),
+    });
+  } catch {
+    return res
+      .status(401)
+      .json({ success: false, message: "Invalid or expired two-factor challenge" });
+  }
+}
+
 export async function getCurrentUser(req: Request, res: Response) {
   try {
     const authorization = req.headers.authorization;
@@ -317,6 +487,7 @@ export async function getCurrentUser(req: Request, res: Response) {
         id: users.id,
         email: users.email,
         role: users.role,
+        twoFactorEnabled: users.twoFactorEnabled,
         createdAt: users.createdAt,
       })
       .from(users)
