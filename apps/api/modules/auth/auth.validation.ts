@@ -48,7 +48,7 @@ export function validateRegister(req: Request, res: Response, next: NextFunction
     });
   }
 
-  if (!isValidRegistrationRole(role)) {
+  if (role !== "BUYER" && role !== "SELLER") {
     return res.status(400).json({
       success: false,
       message: "Role must be BUYER or SELLER",

@@ -1,4 +1,4 @@
-import { integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { integer, numeric, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { users } from "./user.js";
 
@@ -16,9 +16,7 @@ export const auctions = pgTable("auctions", {
 
   sellerId: uuid("seller_id")
     .notNull()
-    .references(() => users.id, {
-      onDelete: "restrict",
-    }),
+    .references(() => users.id, { onDelete: "cascade" }),
 
   title: text("title").notNull(),
 
@@ -26,29 +24,21 @@ export const auctions = pgTable("auctions", {
 
   category: text("category").notNull(),
 
-  startingPrice: integer("starting_price").notNull(),
+  startingPrice: numeric("starting_price", { precision: 12, scale: 2 }).notNull(),
 
-  reservePrice: integer("reserve_price"),
+  reservePrice: numeric("reserve_price", { precision: 12, scale: 2 }),
 
-  currentPrice: integer("current_price").notNull(),
+  currentPrice: numeric("current_price", { precision: 12, scale: 2 }).notNull(),
 
-  minimumIncrement: integer("minimum_increment").notNull().default(100),
+  minimumIncrement: numeric("minimum_increment", { precision: 12, scale: 2 }).notNull(),
 
-  startAt: timestamp("start_at", {
-    withTimezone: true,
-  }).notNull(),
+  startAt: timestamp("start_at", { withTimezone: true }).notNull(),
 
-  endAt: timestamp("end_at", {
-    withTimezone: true,
-  }).notNull(),
+  endAt: timestamp("end_at", { withTimezone: true }).notNull(),
 
-  originalEndAt: timestamp("original_end_at", {
-    withTimezone: true,
-  }).notNull(),
+  originalEndAt: timestamp("original_end_at", { withTimezone: true }).notNull(),
 
-  maxEndAt: timestamp("max_end_at", {
-    withTimezone: true,
-  }),
+  maxEndAt: timestamp("max_end_at", { withTimezone: true }),
 
   status: auctionStatusEnum("status").notNull().default("SCHEDULED"),
 
@@ -56,15 +46,7 @@ export const auctions = pgTable("auctions", {
 
   viewCount: integer("view_count").notNull().default(0),
 
-  createdAt: timestamp("created_at", {
-    withTimezone: true,
-  })
-    .notNull()
-    .defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 
-  updatedAt: timestamp("updated_at", {
-    withTimezone: true,
-  })
-    .notNull()
-    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

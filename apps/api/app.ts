@@ -1,6 +1,10 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import authRoutes from "./modules/auth/auth.routes.js";
+import auctionRoutes from "./modules/auction/auction.routes.js";
+import bidRoutes from "./modules/bid/bid.routes.js";
+import paymentRoutes from "./modules/payment/payment.routes.js";
 import cookieParser from "cookie-parser";
 
 import authRoutes from "./modules/auth/auth.routes.js";
@@ -23,6 +27,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/auctions", auctionRoutes);
 app.use("/api/bids", bidRoutes);
+app.use("/api", paymentRoutes);
 
 app.use(errorMiddleware); // must be last
 
