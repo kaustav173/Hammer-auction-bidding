@@ -10,7 +10,7 @@
     "packages/*"
   ],
   "scripts": {
-    "prepare": "husky",
+    "prepare": "node -e \"if (!process.env.VERCEL) require('child_process').execSync('husky', { stdio: 'inherit' })\"",
     "lint": "npm run lint --workspaces --if-present",
     "lint:fix": "npm run lint:fix --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
